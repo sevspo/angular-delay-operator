@@ -16,6 +16,7 @@ import {
   distinctUntilChanged,
 } from 'rxjs';
 import { DataService } from './data.service';
+import { initial, isPending, RemoteData, success } from './remote-data';
 
 @Component({
   selector: 'app-component',
@@ -32,31 +33,33 @@ export class AppComponent {
   readonly cancel$ = new Subject<void>();
 
   readonly data$ = this.load$.pipe(
-    switchMap(() => nonFlickerLoader(this.dataService.load(900))),
-    startWith('initial'),
+    switchMap(() => nonFlickerLoader(this.dataService.load(600))),
+    startWith(initial),
     takeUntil(this.cancel$),
     repeat()
   );
 }
 
-function nonFlickerLoader<T extends string>(
-  data$: Observable<T>,
-  delay: number = 800,
-  duration: number = 1000
+function nonFlickerLoader(
+  data$: Observable<RemoteData<Error, string>>,
+  delay: number = 500,
+  duration: number = 1500
 ) {
   return data$.pipe(
+    // tap(console.log),
     combineLatestWith(
       timer(delay, duration).pipe(
         map((i) => !i),
         takeWhile(Boolean, true),
         startWith(false)
+        // tap((v) => console.log(v))
       )
     ),
     skip(1), // order matters!!!
-    takeWhile(([data, showLoading]) => data === 'pending' || showLoading, true),
-    tap(console.log),
-    map(([data, showLoading]) =>
-      showLoading || data === 'pending' ? 'show loading...' : data
+    // tap(console.log),
+    takeWhile(([rd, showLoading]) => isPending(rd) || showLoading, true),
+    map(([rd, showLoading]) =>
+      showLoading || isPending(rd) ? success('loading...') : rd
     )
     // distinctUntilChanged()
   );
