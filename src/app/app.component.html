@@ -1,0 +1,16 @@
+<blockquote>
+  Create a no-flicker loading message:
+
+  <ul>
+    <li>If loading took < 1 sec. do not show it</li>
+    <li>If loading took > 1 sec. show it for at least 1 sec.</li>
+  </ul>
+</blockquote>
+
+<p>
+  <button (click)="load$.next()">Load</button>
+  <button (click)="cancel$.next()">Cancel</button>
+</p>
+<div *ngIf="data$ | async as data">
+  <p *ngIf="data.state === 'success'">{{ data.data }}</p>
+</div>
