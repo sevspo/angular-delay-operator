@@ -10,9 +10,9 @@ import {
 import { SpinnerService } from './spinner.service';
 
 export function loadingDebounce(delay = 250, duration = 250) {
-  return <T>(source: Observable<RemoteData<Error, T>>) => {
-    const spinnerService = inject(SpinnerService);
+  const spinnerService = inject(SpinnerService);
 
+  return <T>(source: Observable<RemoteData<Error, T>>) => {
     return source.pipe(
       debounceTime(delay),
       map((rd) => {

@@ -22,11 +22,90 @@
 //   );
 // }
 
-import { Observable, switchMap } from 'rxjs';
-import { RemoteData } from './remote-data';
+import { inject } from '@angular/core';
+import {
+  combineLatestWith,
+  distinctUntilChanged,
+  filter,
+  from,
+  map,
+  Observable,
+  of,
+  partition,
+  startWith,
+  switchMap,
+  takeUntil,
+  takeWhile,
+  tap,
+  timer,
+} from 'rxjs';
+import { isPending, isSuccess, RemoteData } from './remote-data';
+import { SpinnerService } from './spinner.service';
 
-export function loadingDelay(delay = 150, duration = 250) {
+// export function loadingDebounceSimple(delay = 250, duration = 250) {
+//   const spinnerService = inject(SpinnerService);
+
+//   return <T>(source: Observable<RemoteData<Error, T>>) => {
+//     return source.pipe(
+//       switchMap((rd) => {
+//         return timer(delay, duration).pipe(
+//           map((i) => !i),
+//           takeWhile(Boolean, true),
+//           startWith(false)
+//         );
+//       }),
+//       combineLatestWith()
+//     );
+//   };
+// }
+
+export function loadingDelay(delay = 250, duration = 250) {
+  const spinnerService = inject(SpinnerService);
+
   return <T>(source: Observable<RemoteData<Error, T>>) => {
-    return source.pipe(switchMap((rd) => {}));
+    // const [pending$, rest$] = partition(source, (rd) => rd.state === 'pending');
+
+    const pending$ = source.pipe(filter((rd) => rd.state === 'pending'));
+
+    // make copy of source and filter out pending
+    // const pending$ = from(source).pipe(filter((rd) => isPending(rd)));
+
+    const loading$ = pending$.pipe(
+      switchMap((rd) =>
+        timer(delay, duration).pipe(
+          map((i) => !i),
+          takeWhile(Boolean, true),
+          startWith(false)
+        )
+      )
+    );
+
+    // false  ---------------- true ---------------- false
+    // pending ------ success --------------|
+
+    // false  ---------------- true ---------------- false
+    // pending ------------------s----- success ---------h-----|
+
+    // false  ---------------- true ---------------- false------h
+    // pending ------------------s-------------------------- success ----------|
+
+    return source.pipe(
+      combineLatestWith(loading$),
+      // these conditions couls also be changed to delay the emission of the data for an operator that
+      // does not handle the loading state as side effect, eg a loading template
+      map(([rd, loading]) => {
+        if (loading && isPending(rd)) {
+          spinnerService.show();
+        }
+
+        if (!loading && isSuccess(rd)) {
+          spinnerService.hide();
+        }
+
+        return rd;
+      }),
+      distinctUntilChanged(),
+      tap(console.log)
+    );
   };
 }

@@ -9,6 +9,7 @@ import {
 } from 'rxjs';
 import { DataService } from './data.service';
 import { loadingDebounce } from './loading-debounce.operator';
+import { loadingDelay } from './loading-delay.operator';
 import { initial, RemoteData } from './remote-data';
 import { SpinnerService } from './spinner.service';
 
@@ -23,7 +24,7 @@ export class AppComponent {
     private spinnerService: SpinnerService
   ) {
     this.data$ = this.load$.pipe(
-      switchMap(() => this.dataService.load(400)),
+      switchMap(() => this.dataService.load()),
       loadingDebounce(500, 1000),
       takeUntil(this.cancel$),
       startWith(initial),
@@ -31,8 +32,8 @@ export class AppComponent {
     );
 
     this.data2$ = this.load2$.pipe(
-      switchMap(() => this.dataService.load(600)),
-      loadingDebounce(500, 1500),
+      switchMap(() => this.dataService.load()),
+      loadingDelay(500, 1000),
       takeUntil(this.cancel2$),
       startWith(initial),
       repeat()
