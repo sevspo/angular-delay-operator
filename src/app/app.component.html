@@ -1,16 +1,21 @@
-<blockquote>
-  Create a no-flicker loading message:
+<h1>Loading Delay Operator</h1>
 
-  <ul>
-    <li>If loading took < 1 sec. do not show it</li>
-    <li>If loading took > 1 sec. show it for at least 1 sec.</li>
-  </ul>
-</blockquote>
+<h3>Debounce Operator</h3>
+<button (click)="load$.next()">Load</button>
+<button (click)="cancel$.next()">Cancel/Reset</button>
 
-<p>
-  <button (click)="load$.next()">Load</button>
-  <button (click)="cancel$.next()">Cancel</button>
-</p>
 <div *ngIf="data$ | async as data">
   <p *ngIf="data.state === 'success'">{{ data.data }}</p>
+  <p *ngIf="data.state === 'initial'">initial</p>
+  <p *ngIf="data.state === 'pending'">pending</p>
+</div>
+
+<h3>Delay Operator</h3>
+<button (click)="load2$.next()">Load</button>
+<button (click)="cancel2$.next()">Cancel/Reset</button>
+
+<div *ngIf="data2$ | async as data">
+  <p *ngIf="data.state === 'success'">{{ data.data }}</p>
+  <p *ngIf="data.state === 'initial'">initial</p>
+  <p *ngIf="data.state === 'pending'">pending</p>
 </div>

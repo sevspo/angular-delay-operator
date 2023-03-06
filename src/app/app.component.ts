@@ -1,19 +1,17 @@
 import { Component } from '@angular/core';
 import {
+  Observable,
+  repeat,
+  startWith,
   Subject,
   switchMap,
-  startWith,
   takeUntil,
-  repeat,
-  Observable,
-  combineLatestWith,
-  timer,
-  map,
-  takeWhile,
-  skip,
 } from 'rxjs';
 import { DataService } from './data.service';
-import { initial, RemoteData, isPending, success } from './remote-data';
+import { loadingDebounce } from './loading-debounce.operator';
+import { loadingDelay } from './loading-delay.operator';
+import { initial, RemoteData } from './remote-data';
+import { SpinnerService } from './spinner.service';
 
 @Component({
   selector: 'app-root',
@@ -21,41 +19,32 @@ import { initial, RemoteData, isPending, success } from './remote-data';
   styleUrls: ['./app.component.css'],
 })
 export class AppComponent {
-  constructor(private readonly dataService: DataService) {}
+  constructor(
+    private readonly dataService: DataService,
+    private spinnerService: SpinnerService
+  ) {
+    this.data$ = this.load$.pipe(
+      switchMap(() => this.dataService.load()),
+      loadingDebounce(500, 1000),
+      takeUntil(this.cancel$),
+      startWith(initial),
+      repeat()
+    );
+
+    this.data2$ = this.load2$.pipe(
+      switchMap(() => this.dataService.load()),
+      loadingDelay(500, 1000),
+      takeUntil(this.cancel2$),
+      startWith(initial),
+      repeat()
+    );
+  }
 
   readonly load$ = new Subject<void>();
-
   readonly cancel$ = new Subject<void>();
+  data$: Observable<RemoteData<Error, string>>;
 
-  readonly data$ = this.load$.pipe(
-    switchMap(() => nonFlickerLoader(this.dataService.load(600))),
-    startWith(initial),
-    takeUntil(this.cancel$),
-    repeat()
-  );
-}
-
-function nonFlickerLoader(
-  data$: Observable<RemoteData<Error, string>>,
-  delay: number = 500,
-  duration: number = 1500
-) {
-  return data$.pipe(
-    // tap(console.log),
-    combineLatestWith(
-      timer(delay, duration).pipe(
-        map((i) => !i),
-        takeWhile(Boolean, true),
-        startWith(false)
-        // tap((v) => console.log(v))
-      )
-    ),
-    skip(1), // order matters!!!
-    // tap(console.log),
-    takeWhile(([rd, showLoading]) => isPending(rd) || showLoading, true),
-    map(([rd, showLoading]) =>
-      showLoading || isPending(rd) ? success('loading...') : rd
-    )
-    // distinctUntilChanged()
-  );
+  readonly load2$ = new Subject<void>();
+  readonly cancel2$ = new Subject<void>();
+  data2$: Observable<RemoteData<Error, string>>;
 }
